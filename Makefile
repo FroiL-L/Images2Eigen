@@ -16,7 +16,7 @@ jacobi.o:
 	gcc -c jacobi.c -o jacobi.o -lm
 
 clean:
-	rm main.exe main.o
+	rm main.exe
 
 cleanall:
 	rm main.exe *.o

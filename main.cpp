@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <math.h>
 #include "Eigen/Dense"
 #include "Eigen/Eigenvalues"
 
@@ -59,7 +60,7 @@ void getImagesCovm(std::vector<std::string> fPaths, Eigen::MatrixXf& dest) {
 	getImageRC(fPaths[0], rows, cols);
 
 	// Initialize matrix
-	Eigen::MatrixXf mat(fPaths.size(), rows * cols); // images x pixel values
+	Eigen::MatrixXf mat(rows * cols, fPaths.size()); // images x pixel values
 
 	// Fill in matrix
 	for(int i = 0; i < fPaths.size(); i++) {
@@ -72,13 +73,16 @@ void getImagesCovm(std::vector<std::string> fPaths, Eigen::MatrixXf& dest) {
 			for(int c = 0; c < cols; c++) {
 				int pixVal; 
 				img.getPixelVal(r, c, pixVal);
-				mat(i, (r * cols) + c) = pixVal;
+				mat((r * cols) + c, i) = pixVal;
 			}
 		}
 	}
 
+	// Center at zero
+	mat = mat.rowwise() - mat.colwise().mean();
+
 	// Get covariance matrix
-	dest = (float(1)/mat.cols()) * mat * mat.transpose();
+	dest = (float(1)/mat.rows()) * mat.transpose() * mat;
 }
 
 /* saveEigen():
@@ -115,10 +119,21 @@ void saveEigen(Eigen::MatrixXf source) {
 	// Compute eigen values and vectors
 	jacobi(covm, rows - 1, evalues, evectors);
 
-	// Print out eigen values
-	for(int i = 0; i < rows; i++) {
-		std::cout << evalues[i] << std::endl;
-	}
+	// Normalize eigenvectors to unit length
+	for(int i = 1; i < rows; i++) {
+		// Get squared sum
+		float sqrSum = 0.0;
+                for(int j = 1; j < rows; j++) {
+                        sqrSum += evectors[i][j] * evectors[i][j];
+                }
+
+		// Normalize vector to unit length
+		float den = sqrt(sqrSum);
+		for(int j = 1; j < rows; j++) {
+                        evectors[i][j] /= den;
+                }
+        }
+
 
 	// Open file to save eigen values
 	std::ofstream outF("evalues.txt");
